@@ -12,13 +12,12 @@ let pages = [
     { url: 'https://github.com/j1rivas-beep', title: 'GitHub' }
 ];
 
-// 2. Choose the base path for local development or GitHub Pages
 const BASE_PATH =
     location.hostname === 'localhost' || location.hostname === '127.0.0.1'
         ? '/'
         : '/portfolio/';
 
-// 3. Create the navigation bar
+
 let nav = document.createElement('nav');
 document.body.prepend(nav);
 
@@ -52,7 +51,7 @@ if ('colorScheme' in localStorage) {
 
     select.value = localStorage.colorScheme;
 }
-// 4. Create a link for every page
+
 for (let p of pages) {
     let url = p.url;
     let title = p.title;
@@ -71,7 +70,7 @@ for (let p of pages) {
       a.classList.add('current');
     }
 
-// Open external links in a new tab
+
 if (a.host !== location.host) {
     a.target = '_blank';
 }
@@ -112,7 +111,7 @@ export function renderProjects(projects, containerElement, headingLevel = 'h2') 
     // Clear existing content
     containerElement.innerHTML = '';
 
-    // Create an article for each project
+    
     for (let project of projects) {
         const article = document.createElement('article');
 

@@ -4,15 +4,15 @@ console.log("index.js is running!");
 
 import { fetchJSON, renderProjects, fetchGitHubData } from './global.js';
 
-// Fetch GitHub profile data
+
 const githubData = await fetchGitHubData('j1rivas-beep');
 
 console.log('GitHub data:', githubData);
 
-// Select the profile stats container
+
 const profileStats = document.querySelector('#profile-stats');
 
-// Display GitHub stats
+
 if (profileStats) {
     profileStats.innerHTML = `
         <dl>
@@ -24,7 +24,6 @@ if (profileStats) {
     `;
 }
 
-// Fetch project data
 const projects = await fetchJSON('./lib/projects.json');
 
 const latestProjects = projects.slice(0, 3);

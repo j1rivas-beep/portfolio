@@ -29,19 +29,19 @@ searchInput.addEventListener('input', (event) => {
 });
 
 function renderPieChart(projectsGiven) {
-    // Recalculate the number of projects per year
+    
     let newRolledData = d3.rollups(
         projectsGiven,
         (v) => v.length,
         (d) => d.year,
     );
 
-    // Convert the rolled data into the format needed for the pie chart
+    
     let newData = newRolledData.map(([year, count]) => {
         return { value: count, label: year };
     });
 
-    // Create the pie chart slices
+   
     let newSliceGenerator = d3.pie().value((d) => d.value);
     let newArcData = newSliceGenerator(newData);
 
@@ -53,14 +53,14 @@ function renderPieChart(projectsGiven) {
 
     let colors = d3.scaleOrdinal(d3.schemeTableau10);
 
-    // Clear the old pie chart and legend
+    
     let newSVG = d3.select('#projects-plot');
     newSVG.selectAll('path').remove();
 
     let legend = d3.select('.legend');
     legend.selectAll('li').remove();
 
-    // Draw the updated pie chart
+    
     newArcs.forEach((arc, i) => {
         newSVG.append('path')
             .attr('d', arc)
@@ -94,7 +94,7 @@ function renderPieChart(projectsGiven) {
             });
     });
 
-    // Draw the updated legend
+    
     newData.forEach((d, idx) => {
         legend.append('li')
             .attr('style', `--color:${colors(idx)}`)
