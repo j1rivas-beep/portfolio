@@ -1,16 +1,25 @@
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Interactive Development Explorer</title>
+
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
+
 <body>
-    <h1>Poverty and Growth of a Coutry</h1>
 
-    <p>Choose the variables you want to compare:</p>
+    <h1>Poverty and Growth of a Country</h1>
 
+    <p>
+        Choose the variables you want to compare:
+    </p>
+
+    <!-- Dropdown menu for the X axis -->
     <label>X-axis:</label>
+
     <select id="xVariable">
         <option value="poverty">Poverty gap ($5.50)</option>
         <option value="gini">Income inequality (Gini index)</option>
@@ -19,7 +28,9 @@
         <option value="population">Population growth (%)</option>
     </select>
 
+    <!-- Dropdown menu for the Y axis -->
     <label>Y-axis:</label>
+
     <select id="yVariable">
         <option value="gdp">GDP growth (annual %)</option>
         <option value="poverty">Poverty gap ($5.50)</option>
@@ -29,124 +40,325 @@
         <option value="population">Population growth (%)</option>
     </select>
 
+    <!-- The graph will be placed here -->
     <div id="chart"></div>
 
+
     <script>
-        // Load all four CSV files
+
+        // Load the four CSV files
         Promise.all([
+
             d3.csv("poverty.csv", d3.autoType),
+
             d3.csv("health.csv", d3.autoType),
+
             d3.csv("education.csv", d3.autoType),
+
             d3.csv("economy-and-growth.csv", d3.autoType)
-        ]).then(([poverty, health, education, economy]) => {
 
-            // Match records using country code and year
-            const healthMap = new Map(
-                health.map(d => [d["Country Code"] + "_" + d.Year, d])
-            );
+        ]).then(function(files) {
 
-            const educationMap = new Map(
-                education.map(d => [d["Country Code"] + "_" + d.Year, d])
-            );
+            // Store each CSV file in its own variable
+            const povertyData = files[0];
+            const healthData = files[1];
+            const educationData = files[2];
+            const economyData = files[3];
 
-            const economyMap = new Map(
-                economy.map(d => [d["Country Code"] + "_" + d.Year, d])
-            );
 
-            // Combine matching records in JavaScript
-            const data = poverty.map(p => {
-                const key = p["Country Code"] + "_" + p.Year;
+            // Create maps to help match countries and years
+            const healthMap = new Map();
 
-                return {
-                    country: p["Country Name"],
-                    year: p.Year,
+            healthData.forEach(function(row) {
 
-                    poverty: p["average_value_Poverty gap at $5.50 a day (2011 PPP) (%)"],
-                    gini: p["average_value_Gini index (World Bank estimate)"],
+                let key = row["Country Code"] + "_" + row.Year;
 
-                    dependency: healthMap.get(key)?.["average_value_Age dependency ratio (% of working-age population)"],
-                    population: healthMap.get(key)?.["average_value_Population growth (annual %)"],
+                healthMap.set(key, row);
 
-                    education: educationMap.get(key)?.["average_value_School enrollment, secondary (% gross)"],
-
-                    gdp: economyMap.get(key)?.["average_value_GDP growth (annual %)"]
-                };
             });
 
-            // Keep records with valid values for both selected variables
+
+            const educationMap = new Map();
+
+            educationData.forEach(function(row) {
+
+                let key = row["Country Code"] + "_" + row.Year;
+
+                educationMap.set(key, row);
+
+            });
+
+
+            const economyMap = new Map();
+
+            economyData.forEach(function(row) {
+
+                let key = row["Country Code"] + "_" + row.Year;
+
+                economyMap.set(key, row);
+
+            });
+
+
+            // Create a new array that contains the matching data
+            let data = [];
+
+            povertyData.forEach(function(povertyRow) {
+
+                // Find the matching country and year
+                let key = povertyRow["Country Code"] + "_" + povertyRow.Year;
+
+                let healthRow = healthMap.get(key);
+                let educationRow = educationMap.get(key);
+                let economyRow = economyMap.get(key);
+
+
+                // Start by creating a record with the poverty data
+                let countryData = {
+
+                    country: povertyRow["Country Name"],
+
+                    year: povertyRow.Year,
+
+                    poverty: povertyRow["average_value_Poverty gap at $5.50 a day (2011 PPP) (%)"],
+
+                    gini: povertyRow["average_value_Gini index (World Bank estimate)"]
+
+                };
+
+
+                // Add health information if a matching record exists
+                if (healthRow != undefined) {
+
+                    countryData.dependency =
+                        healthRow["average_value_Age dependency ratio (% of working-age population)"];
+
+                    countryData.population =
+                        healthRow["average_value_Population growth (annual %)"];
+
+                }
+
+
+                // Add education information
+                if (educationRow != undefined) {
+
+                    countryData.education =
+                        educationRow["average_value_School enrollment, secondary (% gross)"];
+
+                }
+
+
+                // Add economy information
+                if (economyRow != undefined) {
+
+                    countryData.gdp =
+                        economyRow["average_value_GDP growth (annual %)"];
+
+                }
+
+
+                // Add the completed record to our new array
+                data.push(countryData);
+
+            });
+
+
+            // Function that creates and updates the graph
             function drawChart() {
-                const xVariable = document.getElementById("xVariable").value;
-                const yVariable = document.getElementById("yVariable").value;
 
-                const filteredData = data.filter(d =>
-                    Number.isFinite(d[xVariable]) &&
-                    Number.isFinite(d[yVariable])
-                );
+                // Get the selected variables from the dropdown menus
+                let xVariable = document.getElementById("xVariable").value;
 
+                let yVariable = document.getElementById("yVariable").value;
+
+
+                // Get the full names of the selected variables
+                let xLabel = document.getElementById("xVariable").selectedOptions[0].text;
+
+                let yLabel = document.getElementById("yVariable").selectedOptions[0].text;
+
+
+                // Remove rows that do not have values for both variables
+                let filteredData = [];
+
+                data.forEach(function(row) {
+
+                    if (Number.isFinite(row[xVariable]) &&
+                        Number.isFinite(row[yVariable])) {
+
+                        filteredData.push(row);
+
+                    }
+
+                });
+
+
+                // Remove the previous graph before drawing a new one
                 d3.select("#chart").selectAll("*").remove();
 
-                const width = 850;
-                const height = 550;
-                const margin = {top: 30, right: 30, bottom: 70, left: 80};
 
-                const svg = d3.select("#chart")
+                // Set the size of the graph
+                let width = 850;
+
+                let height = 550;
+
+                let margin = {
+                    top: 40,
+                    right: 30,
+                    bottom: 70,
+                    left: 80
+                };
+
+
+                // Check if there is enough data to create a graph
+                if (filteredData.length == 0) {
+
+                    d3.select("#chart")
+                        .append("p")
+                        .text("No data available for these variables.");
+
+                    return;
+
+                }
+
+
+                // Create the SVG area for the graph
+                let svg = d3.select("#chart")
                     .append("svg")
                     .attr("width", width)
                     .attr("height", height);
 
-                const x = d3.scaleLinear()
-                    .domain(d3.extent(filteredData, d => d[xVariable]))
+
+                // Find the minimum and maximum values for the X axis
+                let xMinimum = d3.min(filteredData, function(row) {
+                    return row[xVariable];
+                });
+
+                let xMaximum = d3.max(filteredData, function(row) {
+                    return row[xVariable];
+                });
+
+
+                // Find the minimum and maximum values for the Y axis
+                let yMinimum = d3.min(filteredData, function(row) {
+                    return row[yVariable];
+                });
+
+                let yMaximum = d3.max(filteredData, function(row) {
+                    return row[yVariable];
+                });
+
+
+                // Create the X scale
+                let xScale = d3.scaleLinear()
+                    .domain([xMinimum, xMaximum])
                     .nice()
                     .range([margin.left, width - margin.right]);
 
-                const y = d3.scaleLinear()
-                    .domain(d3.extent(filteredData, d => d[yVariable]))
+
+                // Create the Y scale
+                let yScale = d3.scaleLinear()
+                    .domain([yMinimum, yMaximum])
                     .nice()
                     .range([height - margin.bottom, margin.top]);
 
-                svg.append("g")
-                    .attr("transform", `translate(0,${height - margin.bottom})`)
-                    .call(d3.axisBottom(x));
+
+                // Draw the X axis
+                let xAxis = d3.axisBottom(xScale);
 
                 svg.append("g")
-                    .attr("transform", `translate(${margin.left},0)`)
-                    .call(d3.axisLeft(y));
+                    .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+                    .call(xAxis);
 
+
+                // Draw the Y axis
+                let yAxis = d3.axisLeft(yScale);
+
+                svg.append("g")
+                    .attr("transform", "translate(" + margin.left + ",0)")
+                    .call(yAxis);
+
+
+                // Add the X axis label
                 svg.append("text")
                     .attr("x", width / 2)
                     .attr("y", height - 15)
                     .attr("text-anchor", "middle")
-                    .text(xVariable);
+                    .text(xLabel);
 
+
+                // Add the Y axis label
                 svg.append("text")
                     .attr("transform", "rotate(-90)")
                     .attr("x", -height / 2)
                     .attr("y", 20)
                     .attr("text-anchor", "middle")
-                    .text(yVariable);
+                    .text(yLabel);
 
+
+                // Draw the circles on the graph
                 svg.selectAll("circle")
                     .data(filteredData)
-                    .join("circle")
-                    .attr("cx", d => x(d[xVariable]))
-                    .attr("cy", d => y(d[yVariable]))
-                    .attr("r", 4)
-                    .attr("fill", "steelblue")
-                    .attr("opacity", 0.6)
-                    .append("title")
-                    .text(d => `${d.country} (${d.year})`);
+                    .enter()
+                    .append("circle")
 
+                    .attr("cx", function(row) {
+                        return xScale(row[xVariable]);
+                    })
+
+                    .attr("cy", function(row) {
+                        return yScale(row[yVariable]);
+                    })
+
+                    .attr("r", 4)
+
+                    .attr("fill", "steelblue")
+
+                    .attr("opacity", 0.6)
+
+                    // Show the country and year when hovering over a point
+                    .append("title")
+
+                    .text(function(row) {
+                        return row.country + " (" + row.year + ")";
+                    });
+
+
+                // Display how many observations are in the graph
                 svg.append("text")
                     .attr("x", margin.left)
-                    .attr("y", 20)
-                    ;
+                    .attr("y", 25)
+                    .text("Number of observations: " + filteredData.length);
+
             }
 
-            document.getElementById("xVariable").addEventListener("change", drawChart);
-            document.getElementById("yVariable").addEventListener("change", drawChart);
 
+            // Redraw the graph when the X dropdown changes
+            document.getElementById("xVariable")
+                .addEventListener("change", drawChart);
+
+
+            // Redraw the graph when the Y dropdown changes
+            document.getElementById("yVariable")
+                .addEventListener("change", drawChart);
+
+
+            // Draw the graph for the first time
             drawChart();
+
+
+        }).catch(function(error) {
+
+            // Display an error if one of the CSV files cannot load
+            console.log("There was a problem loading the CSV files:", error);
+
+            document.getElementById("chart").innerHTML =
+                "There was an error loading the data. Check the CSV filenames.";
+
         });
+
     </script>
+
 </body>
 </html>
+
